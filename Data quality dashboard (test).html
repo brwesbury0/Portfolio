@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Data quality dashboard (test)</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#1b2733;--mute:#5d6b79;--line:#d5dce3;--good:#0f766e;--warn:#b7791f;--bad:#b42318;--goodbg:#d6efe9;--warnbg:#f7e8c8;--badbg:#f6d5d1;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a22;--panel:#1a242e;--ink:#e6ecf1;--mute:#93a1af;--line:#2c3a47;--good:#4fd1c0;--warn:#e6b455;--bad:#ff8a7d;--goodbg:#15403c;--warnbg:#463a1a;--badbg:#4a2622}}
+:root[data-theme="dark"]{--bg:#121a22;--panel:#1a242e;--ink:#e6ecf1;--mute:#93a1af;--line:#2c3a47;--good:#4fd1c0;--warn:#e6b455;--bad:#ff8a7d;--goodbg:#15403c;--warnbg:#463a1a;--badbg:#4a2622}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Public Sans",system-ui,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:24px 16px 48px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 4px}
+h2{font:700 16px/1.3 "Public Sans",system-ui,sans-serif;margin:0 0 4px}
+p.sub{color:var(--mute);margin:0 0 20px}
+.note{background:var(--warnbg);border-left:4px solid var(--warn);padding:8px 12px;margin-bottom:20px;font-size:13px}
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;margin-bottom:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+.score{font:600 64px/1 Fraunces,Georgia,serif}
+.delta{font-size:13px;color:var(--mute);margin-top:6px}
+.dims{margin-top:14px;display:grid;gap:8px}
+.dim{display:grid;grid-template-columns:96px 1fr 44px;align-items:center;gap:8px;font-size:13px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%}
+.scroll{overflow-x:auto}
+table{border-collapse:separate;border-spacing:3px;width:100%;min-width:640px;font-size:13px}
+th{font-weight:500;color:var(--mute);text-align:left;padding:2px 4px}
+th.d{text-align:center}
+td.t{font-weight:500;padding:0 8px 0 0;white-space:nowrap}
+td button.c{width:100%;height:34px;border:2px solid transparent;border-radius:4px;font:500 13px "Public Sans",sans-serif;cursor:pointer;color:var(--ink)}
+button.c.g{background:var(--goodbg)}button.c.w{background:var(--warnbg)}button.c.b{background:var(--badbg)}
+button.c[aria-pressed=true]{border-color:var(--ink)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px;align-items:center}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:14px;padding:3px 12px;font:13px "Public Sans",sans-serif;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.issue{display:grid;grid-template-columns:8px 1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.issue .sev{border-radius:4px}
+.issue b{font-weight:700}
+.issue small{color:var(--mute);display:block}
+.issue .n{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.empty{color:var(--mute);padding:16px 0}
+button.theme{float:right;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 10px;font:13px "Public Sans",sans-serif;cursor:pointer}
+@media (max-width:720px){.top{grid-template-columns:1fr}.score{font-size:52px}}
+</style>
+</head>
+<body>
+<main>
+<button class="theme" id="theme" type="button">Toggle theme</button>
+<h1>Data quality dashboard</h1>
+<p class="sub">Warehouse checks for the last 30 days. Last run: today, 06:00.</p>
+<div class="note">Test version: all numbers are generated sample data. Nothing here is connected to a real source.</div>
+
+<section class="top">
+  <div class="panel">
+    <h2>Overall score</h2>
+    <div class="score" id="overall"></div>
+    <div class="delta" id="delta"></div>
+    <div class="dims" id="dims"></div>
+  </div>
+  <div class="panel">
+    <h2>Score trend, 30 days</h2>
+    <div class="scroll"><svg id="trend" viewBox="0 0 560 210" width="100%" role="img" aria-label="Line chart of overall quality score over 30 days"></svg></div>
+  </div>
+</section>
+
+<section class="panel" style="margin-bottom:16px">
+  <h2>Table health by dimension</h2>
+  <p class="sub" style="margin-bottom:10px">Select a cell to see its failing checks below.</p>
+  <div class="scroll"><table id="grid"></table></div>
+  <div class="legend"><span style="--c:var(--good)">95% and up</span><span style="--c:var(--warn)">85 to 94%</span><span style="--c:var(--bad)">Below 85%</span></div>
+</section>
+
+<section class="panel">
+  <h2>Failing checks</h2>
+  <div class="chips" id="chips"></div>
+  <div id="issues"></div>
+</section>
+</main>
+<script>
+const DIMS=["Completeness","Validity","Uniqueness","Timeliness","Consistency"];
+const TABLES=["customers","orders","order_items","payments","products","shipments","events"];
+const S={
+customers:[97,93,99,98,96],orders:[99,96,100,91,94],order_items:[98,97,100,99,82],
+payments:[100,98,100,88,97],products:[91,84,99,97,95],shipments:[94,90,99,79,92],events:[96,89,97,93,88]};
+const ISSUES=[
+{t:"shipments",d:3,sev:"High",rule:"Carrier scan arrives within 24h of dispatch",rows:1842,since:"6 days"},
+{t:"order_items",d:4,sev:"High",rule:"Line totals sum to order total",rows:2310,since:"3 days"},
+{t:"products",d:1,sev:"High",rule:"Price is greater than zero and under 10,000",rows:96,since:"12 days"},
+{t:"payments",d:3,sev:"Medium",rule:"Settlement date within 2 days of capture",rows:711,since:"2 days"},
+{t:"events",d:4,sev:"Medium",rule:"Session id exists in sessions table",rows:5204,since:"9 days"},
+{t:"events",d:1,sev:"Medium",rule:"Event timestamp is not in the future",rows:388,since:"1 day"},
+{t:"shipments",d:1,sev:"Medium",rule:"Postal code matches country format",rows:427,since:"5 days"},
+{t:"products",d:0,sev:"Medium",rule:"Category is not null",rows:203,since:"12 days"},
+{t:"orders",d:3,sev:"Low",rule:"Updated within 1h of status change",rows:154,since:"4 days"},
+{t:"customers",d:1,sev:"Low",rule:"Email matches a valid address pattern",rows:312,since:"8 days"},
+{t:"customers",d:0,sev:"Low",rule:"Phone number is present for active accounts",rows:270,since:"14 days"},
+{t:"events",d:2,sev:"Low",rule:"Event id is unique per day",rows:61,since:"2 days"}];
+const cls=v=>v>=95?"g":v>=85?"w":"b";
+const col=v=>v>=95?"var(--good)":v>=85?"var(--warn)":"var(--bad)";
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const dimAvg=DIMS.map((_,i)=>avg(TABLES.map(t=>S[t][i])));
+const overall=avg(dimAvg);
+document.getElementById("overall").textContent=overall.toFixed(1)+"%";
+document.getElementById("overall").style.color=col(overall);
+document.getElementById("delta").textContent="Down 0.8 points from 30 days ago";
+document.getElementById("dims").innerHTML=DIMS.map((d,i)=>`<div class="dim"><span>${d}</span><div class="bar"><i style="width:${dimAvg[i]}%;background:${col(dimAvg[i])}"></i></div><b>${dimAvg[i].toFixed(0)}%</b></div>`).join("");
+
+// trend
+(function(){
+ const pts=[];let v=overall+0.8;
+ for(let i=0;i<30;i++){v+=Math.sin(i*1.7)*0.35-0.03+(i===19?-0.9:0)+(i===24?0.5:0);pts.push(v);}
+ pts[29]=overall;
+ const W=560,H=210,p={l:36,r:10,t:10,b:24},lo=Math.floor(Math.min(...pts))-1,hi=Math.ceil(Math.max(...pts))+1;
+ const x=i=>p.l+i*(W-p.l-p.r)/29,y=n=>p.t+(hi-n)*(H-p.t-p.b)/(hi-lo);
+ let s="";
+ for(let g=lo;g<=hi;g+=1){s+=`<line x1="${p.l}" x2="${W-p.r}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)"/><text x="${p.l-6}" y="${y(g)+4}" font-size="11" text-anchor="end" fill="var(--mute)">${g}</text>`;}
+ s+=`<line x1="${x(20)}" x2="${x(20)}" y1="${p.t}" y2="${H-p.b}" stroke="var(--bad)" stroke-dasharray="3 3"/><text x="${x(20)-4}" y="${p.t+10}" font-size="11" text-anchor="end" fill="var(--bad)">Shipments feed delayed</text>`;
+ s+=`<polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${pts.map((n,i)=>x(i)+","+y(n)).join(" ")}"/>`;
+ s+=`<circle cx="${x(29)}" cy="${y(pts[29])}" r="4" fill="var(--ink)"/>`;
+ s+=`<text x="${x(0)}" y="${H-6}" font-size="11" fill="var(--mute)">30 days ago</text><text x="${x(29)}" y="${H-6}" font-size="11" text-anchor="end" fill="var(--mute)">Today</text>`;
+ document.getElementById("trend").innerHTML=s;
+})();
+
+// grid
+let sel=null,sev="All";
+const grid=document.getElementById("grid");
+grid.innerHTML="<tr><th></th>"+DIMS.map(d=>`<th class="d">${d}</th>`).join("")+"</tr>"+
+ TABLES.map(t=>`<tr><td class="t">${t}</td>`+S[t].map((v,i)=>`<td><button type="button" class="c ${cls(v)}" data-t="${t}" data-d="${i}" aria-pressed="false" aria-label="${t}, ${DIMS[i]}, ${v} percent">${v}%</button></td>`).join("")+"</tr>").join("");
+grid.addEventListener("click",e=>{
+ const b=e.target.closest("button.c");if(!b)return;
+ const same=sel&&sel.t===b.dataset.t&&sel.d==b.dataset.d;
+ sel=same?null:{t:b.dataset.t,d:+b.dataset.d};
+ grid.querySelectorAll("button.c").forEach(x=>x.setAttribute("aria-pressed",String(!!sel&&x.dataset.t===sel.t&&+x.dataset.d===sel.d)));
+ render();
+});
+
+// issues
+const chips=document.getElementById("chips");
+function render(){
+ chips.innerHTML=["All","High","Medium","Low"].map(s=>`<button type="button" class="chip" aria-pressed="${s===sev}" data-s="${s}">${s}</button>`).join("")+
+  (sel?`<span style="font-size:13px;color:var(--mute);margin-left:6px">Showing ${sel.t}, ${DIMS[sel.d]}</span>`:"");
+ const list=ISSUES.filter(i=>(sev==="All"||i.sev===sev)&&(!sel||(i.t===sel.t&&i.d===sel.d)));
+ const c={High:"var(--bad)",Medium:"var(--warn)",Low:"var(--mute)"};
+ document.getElementById("issues").innerHTML=list.length?list.map(i=>`<div class="issue"><span class="sev" style="background:${c[i.sev]}"></span><div><b>${i.rule}</b><small>${i.t}, ${DIMS[i.d]}. ${i.sev} severity, failing for ${i.since}</small></div><div class="n">${i.rows.toLocaleString()}<small>rows</small></div></div>`).join(""):`<div class="empty">No failing checks match this filter.</div>`;
+}
+chips.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;sev=b.dataset.s;render();});
+render();
+
+// theme
+document.getElementById("theme").addEventListener("click",()=>{
+ const r=document.documentElement,dark=matchMedia("(prefers-color-scheme:dark)").matches;
+ const cur=r.dataset.theme||(dark?"dark":"light");
+ r.dataset.theme=cur==="dark"?"light":"dark";
+});
+</script>
+</body>
+</html>
